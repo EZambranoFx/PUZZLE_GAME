@@ -39,6 +39,11 @@ public class GameManager : MonoBehaviour
         dimensions = GetDimensions(jigsawTexture, difficulty);
 
         CreateJigsawPieces(jigsawTexture);
+
+        Scatter();
+
+        UpdateBorder();
+
     }
 
     Vector2Int GetDimensions(Texture2D jigsawTexture, int difficulty) {
@@ -92,5 +97,43 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         
+    }
+
+    private void Scatter() {
+        float orthoHeight = Camera.main.orthographicSize;
+        float screenAspect = (float)Screen.width / Screen.height;
+        float orthoWidth = orthoHeight * screenAspect;
+
+        float pieceWidth = width * gameHolder.localScale.x;
+        float pieceHeight = height * gameHolder.localScale.y;
+
+        orthoHeight -= pieceHeight;
+        orthoWidth -= pieceWidth;
+
+        foreach (Transform piece in pieces) {
+            float x = Random.Range(-orthoWidth, orthoWidth);
+            float y = Random.Range(-orthoHeight, orthoHeight);
+            piece.position = new Vector3(x, y, -1);
+
+        }
+    }
+
+    private void UpdateBorder() {
+        LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
+
+        float halfWidth = (width * dimensions.x) / 2f;
+        float halfHeight = (height * dimensions.y) / 2f;
+
+        float borderZ = 0f;
+
+        lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
+        lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
+        lineRenderer.SetPosition(2, new Vector3(halfWidth, -halfHeight, borderZ));
+        lineRenderer.SetPosition(3, new Vector3(-halfWidth, -halfHeight, borderZ));
+
+        lineRenderer.startWidth = 0.1f;
+        lineRenderer.endWidth = 0.1f;
+
+        lineRenderer.enabled = true;
     }
 }
