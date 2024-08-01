@@ -16,11 +16,17 @@ public class GameManager : MonoBehaviour
     [SerializeField] private List<Texture2D> imageTextures;
     [SerializeField] private Transform levelSelectPanel;
     [SerializeField] private Image levelSelectedPrefab;
+    [SerializeField] private GameObject playAgainButton;
 
     private List<Transform> pieces;
     private Vector2Int dimensions;
     private float width;
     private float height;
+
+    private Transform draggingPiece = null;
+    private Vector3 offset;
+
+    private int piecesCorrect;
     
     void Start()
     {
@@ -43,6 +49,8 @@ public class GameManager : MonoBehaviour
         Scatter();
 
         UpdateBorder();
+
+        piecesCorrect = 0;
 
     }
 
@@ -94,10 +102,7 @@ public class GameManager : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    
 
     private void Scatter() {
         float orthoHeight = Camera.main.orthographicSize;
@@ -135,5 +140,62 @@ public class GameManager : MonoBehaviour
         lineRenderer.endWidth = 0.1f;
 
         lineRenderer.enabled = true;
+    }
+
+    void Update() {
+        if (Input.GetMouseButtonDown(0)) {
+            RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+            if (hit) {
+                draggingPiece = hit.transform;
+                offset = draggingPiece.position - Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                offset += Vector3.back;
+            }
+        }
+
+        if (draggingPiece && Input.GetMouseButtonUp(0)) {
+            SnapAndDisableIfCorrect();
+            draggingPiece.position += Vector3.forward;
+            draggingPiece = null;
+
+        }
+        
+        if (draggingPiece) {
+            Vector3 newPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            // newPosition.z = draggingPiece.position.z;
+            newPosition += offset;
+            draggingPiece.position = newPosition;
+            
+        }
+    }
+
+    private void SnapAndDisableIfCorrect() {
+        int pieceIndex = pieces.IndexOf(draggingPiece);
+
+        int col = pieceIndex % dimensions.x;
+        int row = pieceIndex / dimensions.x;
+
+        Vector2 targetPosition = new((-width * dimensions.x / 2) + (width * col) + (width / 2),
+            (-height * dimensions.y / 2) + (height * row) + (height / 2));
+        
+        if (Vector2.Distance(draggingPiece.localPosition, targetPosition) < (width / 2)) {
+            draggingPiece.localPosition = targetPosition;
+            draggingPiece.GetComponent<BoxCollider2D>().enabled = false;
+
+            piecesCorrect++;
+            if (piecesCorrect == pieces.Count) {
+                playAgainButton.SetActive(true);
+            }
+
+        }
+    }
+
+    public void RestartGame() {
+        foreach (Transform piece in pieces) {
+            Destroy(piece.gameObject);
+        }
+        pieces.Clear();
+        gameHolder.GetComponent<LineRenderer>().enabled = false;
+        playAgainButton.SetActive(false);
+        levelSelectPanel.gameObject.SetActive(true);
     }
 }
